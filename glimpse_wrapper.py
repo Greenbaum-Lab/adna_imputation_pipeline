@@ -163,8 +163,13 @@ class GlimpseWrapper(object):
                     ]
 
                     processed = subprocess.run(command, capture_output=True, text=True)
-                    # TODO check if the command succeeded
+                    if processed.returncode:
+                        raise Exception(processed.stderr)
+
                     print("-------------------SPLIT_REF------------------\n" + processed.stdout)
+                    if not os.path.isfile(f'{output}_{self.chromosome}_'
+                                          f'{split_range[0]}_{split_range[1]}.bin'):
+                        raise GlimpseException('SPLIT_REFERENCE')
 
     def filter_only_relevant_chromosome_bam(self, bam_file):
         """
@@ -202,11 +207,9 @@ class GlimpseWrapper(object):
         """
         # Making sure chromosome notation matches between reference and input
         # BAM file
-        # TODO change order of those functions (requires changes in filter function)
         self.input_bam = validate_chromosome_notation_in_bam(self.input_bam,
                                                              self.output_dir,
                                                              self.chromosome)
-        # TODO I need to rethink how I check if this function is needed for a given file
         # Commented out this part since I assume the BAM files will be filtered
         # before running the pipeline.
         # self.input_bam = self.filter_only_relevant_chromosome_bam(self.input_bam)
@@ -239,8 +242,12 @@ class GlimpseWrapper(object):
             ]
 
             processed = subprocess.run(command, capture_output=True, text=True)
-            # TODO make sure the stage succeeded
+            if processed.returncode:
+                raise Exception(processed.stderr)
+
             print("-------------------PHASE------------------\n" + processed.stdout)
+            if not os.path.isfile(output_path):
+                raise GlimpseException("PHASE")
 
     def run_ligate(self):
         """
@@ -261,7 +268,11 @@ class GlimpseWrapper(object):
                                   os.path.join(self.output_dir, LST_FILE_NAME),
                                   '--output', os.path.join(self.output_dir, LIGATE_OUTPUT)],
                                  capture_output=True, text=True)
+        if command.returncode:
+            raise Exception(command.stderr)
         print("-------------------LIGATE------------------\n" + command.stdout)
+        if not os.path.isfile(os.path.join(self.output_dir, LIGATE_OUTPUT)):
+            raise GlimpseException("LIGATE")
 
     def create_bcf_from_bam(self):
         """
