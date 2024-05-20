@@ -5,13 +5,15 @@ import argparse
 
 from glimpse_wrapper import GlimpseWrapper
 from utils import create_bcf_from_bam
-from calculate_heterozygosity import calculate_heterozygosity_bins
+from calculate_heterozygosity import (calculate_heterozygosity_bins,
+                                      calculate_heterozygosity_genes)
 
 # Consts
 GLIMPSE_DIR = '/home/lab-heavy2/Documents/yuvalt/glimpse'
 WD = '/home/lab-heavy2/adna'
 TRUTH_FASTA = '/home/lab-heavy2/adna/reference/hg19.fa'
 DEFAULT_BIN_SIZE = 10000
+DEFAULT_GENES_POS_FILE = '~/keith/adna_db/hla_genes_positions'
 
 
 def call(input_bam, output_path, chromosome, tsv, reference_sites,
@@ -78,7 +80,7 @@ def phase(input_bam, reference, chromosome, reference_sites=None,
     g.delete_temp_files()
 
 
-def het(input_bcf, output_dir, is_imputed, bin_size, chromosome):
+def het(input_bcf, output_dir, is_imputed, chromosome, bin_size=None, genes_pos_file=None):
     """
     This method runs heterozygosity sites counts on the given BCF file.
 
@@ -88,7 +90,8 @@ def het(input_bcf, output_dir, is_imputed, bin_size, chromosome):
     :param bin_size:
     :param chromosome:
     """
-    calculate_heterozygosity_bins(input_bcf, is_imputed, bin_size, output_dir, chromosome)
+    # calculate_heterozygosity_bins(input_bcf, is_imputed, bin_size, output_dir, chromosome)
+    calculate_heterozygosity_genes(input_bcf, is_imputed, genes_pos_file, output_dir, chromosome)
 
 
 def main():
@@ -107,8 +110,6 @@ def main():
     parser.add_argument('--reference_sites', type=str,
                         help='Path to reference sites file. Not required - '
                              'can be created automatically given a reference file.')
-    # parser.add_argument('--is_imputed', type=bool,
-    #                     help='Whether or not the input file is imputed.')
     feature_parser = parser.add_mutually_exclusive_group(required=False)
     feature_parser.add_argument('--imputed', dest='is_imputed', action='store_true')
     feature_parser.add_argument('--non-imputed', dest='is_imputed', action='store_false')
@@ -142,10 +143,10 @@ def main():
             raise ValueError("het mode requires arguments: input_path, chromosome, imputed / non-imputed")
         if not args.output_path:
             het(args.input_path, os.path.dirname(args.input_path), args.is_imputed,
-                DEFAULT_BIN_SIZE, args.chromosome)
+                args.chromosome, DEFAULT_BIN_SIZE, DEFAULT_GENES_POS_FILE)
         else:
             het(args.input_path, args.output_path, args.is_imputed,
-                DEFAULT_BIN_SIZE, args.chromosome)
+                args.chromosome, DEFAULT_BIN_SIZE, DEFAULT_GENES_POS_FILE)
 
 
 if __name__ == '__main__':
