@@ -80,15 +80,17 @@ def phase(input_bam, reference, chromosome, reference_sites=None,
     g.delete_temp_files()
 
 
-def het(input_bcf, output_dir, is_imputed, chromosome, bin_size=None, genes_pos_file=None):
+def het(input_bcf, output_dir, is_imputed, chromosome, bin_size=DEFAULT_BIN_SIZE,
+        genes_pos_file=DEFAULT_GENES_POS_FILE):
     """
     This method runs heterozygosity sites counts on the given BCF file.
 
     :param input_bcf:
     :param output_dir:
     :param is_imputed:
-    :param bin_size:
     :param chromosome:
+    :param bin_size:
+    :param genes_pos_file:
     """
     # calculate_heterozygosity_bins(input_bcf, is_imputed, bin_size, output_dir, chromosome)
     calculate_heterozygosity_genes(input_bcf, is_imputed, genes_pos_file, output_dir, chromosome)
@@ -120,6 +122,9 @@ def main():
                         help='Directory to create GLIMPSE temp and output files at.')
     parser.add_argument('--truth_fasta', type=str,
                         help='The faidx-indexed reference file in the FASTA format.')
+    parser.add_argument('--genes_pos_file', type=str,
+                        help='Path to file containing the genes positions to '
+                             'calculate heterozygosity for.')
 
     args = parser.parse_args()
 
@@ -143,10 +148,10 @@ def main():
             raise ValueError("het mode requires arguments: input_path, chromosome, imputed / non-imputed")
         if not args.output_path:
             het(args.input_path, os.path.dirname(args.input_path), args.is_imputed,
-                args.chromosome, DEFAULT_BIN_SIZE, DEFAULT_GENES_POS_FILE)
+                args.chromosome, DEFAULT_BIN_SIZE, args.genes_pos_file)
         else:
             het(args.input_path, args.output_path, args.is_imputed,
-                args.chromosome, DEFAULT_BIN_SIZE, DEFAULT_GENES_POS_FILE)
+                args.chromosome, DEFAULT_BIN_SIZE, args.genes_pos_file)
 
 
 if __name__ == '__main__':
