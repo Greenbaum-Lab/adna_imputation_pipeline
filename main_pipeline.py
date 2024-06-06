@@ -92,7 +92,7 @@ def het(input_bcf, output_dir, is_imputed, chromosome, bin_size=DEFAULT_BIN_SIZE
     :param bin_size:
     :param genes_pos_file:
     """
-    # calculate_heterozygosity_bins(input_bcf, is_imputed, bin_size, output_dir, chromosome)
+    calculate_heterozygosity_bins(input_bcf, is_imputed, bin_size, output_dir, chromosome)
     calculate_heterozygosity_genes(input_bcf, is_imputed, genes_pos_file, output_dir, chromosome)
 
 

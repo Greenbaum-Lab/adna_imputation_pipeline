@@ -136,7 +136,7 @@ def calculate_heterozygosity_bins(input_file, is_imputed, bin_size,
     chrom_len = CHROM_LENGTHS[chromosome]
     start = 0
     while start < chrom_len:
-        end = min(start + bin_size + 1, chrom_len + 1)
+        end = min(start + bin_size, chrom_len + 1)
         bins_data.loc[len(bins_data.index)] = [chromosome, start, end, 0, 0]
         start = end
 
