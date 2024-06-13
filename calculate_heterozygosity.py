@@ -5,7 +5,6 @@ import os
 import re
 import argparse
 
-
 REGIONS_POS = {'MHC': (28477797, 33448354),
                'MHC_CLASS_1': (29570015, 31478901),
                'MHC_CLASS_2': (31486754, 32374958),
@@ -46,6 +45,79 @@ MIN_PROB = 0.9
 OUTPUT_DIR = '/home/lab-heavy2/adna/output'
 DEFAULT_COV_THRESHOLD = 1000
 DEFAULT_SNP_THRESHOLD = 0
+HLA_GENES_SITES_FILE = '/home/lab-heavy2/adna/hla_genes_sites.csv'
+
+
+def calculate_heterozygosity_sites(input_file, is_imputed, sites_file,
+                                   output_dir, chromosome, min_dp=MIN_DP,
+                                   min_prob=MIN_PROB):
+    """
+    This function determines for each site in the sites_file whether in each
+    sample it's homozygous, heterozygous, or has no data, and saves the results
+    in two BEDGRAPH files.
+    According to the is_imputed flag, there will be a different filter for sites
+    that will be included in the calculation.
+
+    :param input_file: To calculate heterozygosity level of
+    :param is_imputed: whether the VCF file is an original sample or imputed data
+    :param sites_file: File with relevant sites locations
+    :param output_dir: dir to save output file at
+    :param chromosome: to run calculations for
+    :param min_dp: Minimum sequencing depth for original samples
+    :param min_prob: Minimum probability for imputed data
+    """
+    bcf = pysam.VariantFile(input_file)
+    sites = pd.read_csv(sites_file)
+    sites = sites[['chromosome', 'position']]
+    sites.rename(columns={'position': 'start_pos'}, inplace=True)
+    sites['end_pos'] = sites['start_pos'] + 1
+    sites['data'] = 0
+
+    min_pos = sites.loc[0, 'start_pos']
+    max_pos = sites.loc[len(sites) - 1, 'end_pos']
+
+    current_line_index = 0
+
+    for record in bcf.fetch(chromosome, min_pos, max_pos):
+        while record.pos > sites.iloc[current_line_index]['start_pos']:
+            # Mark -1 for no data for the site
+            sites.loc[current_line_index, 'data'] = -1
+            current_line_index += 1
+        # If the site is not relevant based on sites_file we ignore it
+        if record.pos != sites.iloc[current_line_index]['start_pos']:
+            continue
+
+        sample = record.samples[0]  # Access the first sample
+        if sample.alleles and all(allele is not None for allele in sample.alleles):
+            gt = sample['GT']
+            dp = sample.get('DP')
+            gp = sample.get('GP')
+            if ((not is_imputed and gt and None not in gt and dp >= min_dp) or
+                    (is_imputed and gt and None not in gt and max(gp) >= min_prob)):  # Check for valid genotype data
+                is_het = len(set(gt)) > 1
+                if is_het:
+                    sites.loc[current_line_index, 'data'] = 1
+                else:
+                    sites.loc[current_line_index, 'data'] = 0
+            else:
+                sites.loc[current_line_index, 'data'] = -1
+        else:
+            sites.loc[current_line_index, 'data'] = -1
+
+        current_line_index += 1
+
+    while current_line_index < len(sites):
+        sites.loc[current_line_index, 'data'] = -1
+        current_line_index += 1
+
+    bcf.close()
+
+    output_file_name = os.path.basename(input_file).replace('.bcf',
+                                                            '_sites_data.bg')
+    sites.to_csv(os.path.join(output_dir, output_file_name),
+                 sep='\t',
+                 header=False,
+                 index=False)
 
 
 def calculate_heterozygosity_genes(input_file, is_imputed, genes_locations_file,
@@ -112,7 +184,7 @@ def calculate_heterozygosity_genes(input_file, is_imputed, genes_locations_file,
 
 
 def calculate_heterozygosity_bins(input_file, is_imputed, bin_size,
-                                  output_dir, chromosome,  min_dp=MIN_DP,
+                                  output_dir, chromosome, min_dp=MIN_DP,
                                   min_prob=MIN_PROB):
     """
     This function counts the total and heterozygous sites of a given BCF file
@@ -136,7 +208,7 @@ def calculate_heterozygosity_bins(input_file, is_imputed, bin_size,
     chrom_len = CHROM_LENGTHS[chromosome]
     start = 0
     while start < chrom_len:
-        end = min(start + bin_size + 1, chrom_len + 1)
+        end = min(start + bin_size, chrom_len + 1)
         bins_data.loc[len(bins_data.index)] = [chromosome, start, end, 0, 0]
         start = end
 
@@ -410,13 +482,18 @@ if __name__ == '__main__':
     #
     # create_csv_for_all_samples_in_dir(args.input_dir, args.cov_threshold,
     #                                   args.snp_threshold)
-    calculate_heterozygosity_genes(input_file='/home/lab-heavy2/adna/output/imputed/VLASA32.SG.bcf',
-                                   is_imputed=True,
-                                   genes_locations_file='~/keith/adna_db/hla_genes_positions',
-                                   output_dir='~/keith/adna_db/',
-                                   chromosome='chr6')
-    calculate_heterozygosity_genes(input_file='/home/lab-heavy2/adna/output/called/Bichon_noUDG.SG.bcf',
+    # calculate_heterozygosity_genes(input_file='/home/lab-heavy2/adna/output/imputed/VLASA32.SG.bcf',
+    #                                is_imputed=True,
+    #                                genes_locations_file='~/keith/adna_db/hla_genes_positions',
+    #                                output_dir='~/keith/adna_db/',
+    #                                chromosome='chr6')
+    # calculate_heterozygosity_genes(input_file='/home/lab-heavy2/adna/output/called/Bichon_noUDG.SG.bcf',
+    #                                is_imputed=False,
+    #                                genes_locations_file='~/keith/adna_db/hla_genes_positions',
+    #                                output_dir='~/keith/adna_db/',
+    #                                chromosome='chr6')
+    calculate_heterozygosity_sites('/home/lab-heavy2/adna/output/called/VLASA32.SG.bcf',
                                    is_imputed=False,
-                                   genes_locations_file='~/keith/adna_db/hla_genes_positions',
-                                   output_dir='~/keith/adna_db/',
+                                   sites_file=HLA_GENES_SITES_FILE,
+                                   output_dir='/home/lab-heavy2/adna/output',
                                    chromosome='chr6')

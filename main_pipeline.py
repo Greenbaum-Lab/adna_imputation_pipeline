@@ -6,7 +6,8 @@ import argparse
 from glimpse_wrapper import GlimpseWrapper
 from utils import create_bcf_from_bam
 from calculate_heterozygosity import (calculate_heterozygosity_bins,
-                                      calculate_heterozygosity_genes)
+                                      calculate_heterozygosity_genes,
+                                      calculate_heterozygosity_sites)
 
 # Consts
 GLIMPSE_DIR = '/home/lab-heavy2/Documents/yuvalt/glimpse'
@@ -92,13 +93,20 @@ def het(input_bcf, output_dir, is_imputed, chromosome, bin_size=DEFAULT_BIN_SIZE
     :param bin_size:
     :param genes_pos_file:
     """
-    # calculate_heterozygosity_bins(input_bcf, is_imputed, bin_size, output_dir, chromosome)
-    calculate_heterozygosity_genes(input_bcf, is_imputed, genes_pos_file, output_dir, chromosome)
+    calculate_heterozygosity_bins(input_bcf, is_imputed, bin_size, output_dir,
+                                  chromosome)
+    calculate_heterozygosity_genes(input_bcf, is_imputed, genes_pos_file,
+                                   output_dir, chromosome)
+
+
+def het_sites(input_bcf, output_dir, is_imputed, chromosome, sites_file):
+    calculate_heterozygosity_sites(input_bcf, is_imputed, sites_file,
+                                   output_dir, chromosome)
 
 
 def main():
     parser = argparse.ArgumentParser(description='Analyze input BAM file in different modes')
-    parser.add_argument('mode', type=str, choices=['call', 'phase', 'het'],
+    parser.add_argument('mode', type=str, choices=['call', 'phase', 'het', 'het_sites'],
                         help='Mode for running the pipeline')
     parser.add_argument('input_path', type=str,
                         help='Path to input file (BAM for "call" and "phase" modes, BCF for "het" mode')
@@ -125,6 +133,9 @@ def main():
     parser.add_argument('--genes_pos_file', type=str,
                         help='Path to file containing the genes positions to '
                              'calculate heterozygosity for.')
+    parser.add_argument('--sites_file', type=str,
+                        help='Path to file containing the sites to check '
+                             'heterozygosity of.')
 
     args = parser.parse_args()
 
@@ -132,7 +143,8 @@ def main():
     if args.mode == 'call':
         if args.output_path is None or args.reference_sites is None:
             raise ValueError("call mode requires arguments: input_path, "
-                             "output_path, chromosome, reference_sites, truth_fasta [,tsv]")
+                             "output_path, chromosome, reference_sites, "
+                             "truth_fasta [,tsv]")
         call(args.input_path, args.output_path, args.chromosome,
              args.tsv, args.reference_sites, args.truth_fasta)
     elif args.mode == 'phase':
@@ -143,15 +155,23 @@ def main():
         phase(args.input_path, args.reference, args.chromosome,
               args.reference_sites, args.output_path, args.glimpse_dir,
               args.wd, args.truth_fasta)
-    else:
+    elif args.mode == 'het':
         if args.is_imputed is None:
-            raise ValueError("het mode requires arguments: input_path, chromosome, imputed / non-imputed")
+            raise ValueError("het mode requires arguments: input_path, "
+                             "chromosome, imputed / non-imputed")
         if not args.output_path:
             het(args.input_path, os.path.dirname(args.input_path), args.is_imputed,
                 args.chromosome, DEFAULT_BIN_SIZE, args.genes_pos_file)
         else:
             het(args.input_path, args.output_path, args.is_imputed,
                 args.chromosome, DEFAULT_BIN_SIZE, args.genes_pos_file)
+    elif args.mode == 'het_sites':
+        if not args.output_path:
+            het_sites(args.input_path, os.path.dirname(args.input_path),
+                      args.is_imputed, args.chromosome, args.sites_file)
+        else:
+            het_sites(args.input_path, args.output_path, args.is_imputed,
+                      args.chromosome, args.sites_file)
 
 
 if __name__ == '__main__':
