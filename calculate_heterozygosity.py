@@ -464,36 +464,3 @@ def create_csv_for_all_samples_in_dir(input_dir,
 
     create_het_csv(called_samples, imputed_samples, snp_threshold,
                    coverage_threshold, input_dir)
-
-
-if __name__ == '__main__':
-    # parser = argparse.ArgumentParser(description="Calculate MHC related regions "
-    #                                              "for samples in dir")
-    # parser.add_argument('input_dir', type=str,
-    #                     help='dir that contains "called" and "imputed" dirs and'
-    #                          ' in them samples. This code assumes each sample'
-    #                          ' appears in both sub-dirs.')
-    # parser.add_argument('--cov_threshold', type=int, default=DEFAULT_COV_THRESHOLD,
-    #                     help='minimal number of bins with data in sample.')
-    # parser.add_argument('--snp_threshold', type=int, default=DEFAULT_SNP_THRESHOLD,
-    #                     help='minimum snps in bin for it to be counted')
-    #
-    # args = parser.parse_args()
-    #
-    # create_csv_for_all_samples_in_dir(args.input_dir, args.cov_threshold,
-    #                                   args.snp_threshold)
-    # calculate_heterozygosity_genes(input_file='/home/lab-heavy2/adna/output/imputed/VLASA32.SG.bcf',
-    #                                is_imputed=True,
-    #                                genes_locations_file='~/keith/adna_db/hla_genes_positions',
-    #                                output_dir='~/keith/adna_db/',
-    #                                chromosome='chr6')
-    # calculate_heterozygosity_genes(input_file='/home/lab-heavy2/adna/output/called/Bichon_noUDG.SG.bcf',
-    #                                is_imputed=False,
-    #                                genes_locations_file='~/keith/adna_db/hla_genes_positions',
-    #                                output_dir='~/keith/adna_db/',
-    #                                chromosome='chr6')
-    calculate_heterozygosity_sites('/home/lab-heavy2/adna/output/called/VLASA32.SG.bcf',
-                                   is_imputed=False,
-                                   sites_file=HLA_GENES_SITES_FILE,
-                                   output_dir='/home/lab-heavy2/adna/output',
-                                   chromosome='chr6')
