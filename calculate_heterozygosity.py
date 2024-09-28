@@ -140,7 +140,7 @@ def calculate_heterozygosity_genes(input_file, is_imputed, genes_locations_file,
     :param min_prob: Minimum probability for imputed data
         """
     bcf = pysam.VariantFile(input_file)
-    maf_include = pd.DataFrame(maf_file, delimiter=' ', names=['pos'])['pos'].values
+    maf_include = pd.read_csv(maf_file, delimiter=' ', names=['pos'])['pos'].values
     genes_data = pd.read_csv(genes_locations_file)
     genes_data.columns = ['chromosome', 'start_pos', 'end_pos']
     genes_data['chromosome'] = chromosome
@@ -206,7 +206,7 @@ def calculate_heterozygosity_bins(input_file, is_imputed, bin_size,
     """
     bcf = pysam.VariantFile(input_file)
     bins_data = pd.DataFrame(columns=ALL_COLUMNS)
-    maf_include = pd.DataFrame(maf_file, delimiter=' ', names=['pos'])['pos'].values
+    maf_include = pd.read_csv(maf_file, delimiter=' ', names=['pos'])['pos'].values
 
     # Initiate bin data
     chrom_len = CHROM_LENGTHS[chromosome]
