@@ -121,7 +121,7 @@ def calculate_heterozygosity_sites(input_file, is_imputed, sites_file,
 
 
 def calculate_heterozygosity_genes(input_file, is_imputed, genes_locations_file,
-                                   output_dir, chromosome, min_dp=MIN_DP,
+                                   output_dir, chromosome, maf_file, min_dp=MIN_DP,
                                    min_prob=MIN_PROB):
     """
     This function counts the total and heterozygous sites of a given BCF file
@@ -135,10 +135,12 @@ def calculate_heterozygosity_genes(input_file, is_imputed, genes_locations_file,
            (all in the same chromosome)
     :param output_dir: dir to save output file at
     :param chromosome: to run calculations for
+    :param maf_file: list of positions in chromosome filtered based on MAF
     :param min_dp: Minimum sequencing depth for original samples
     :param min_prob: Minimum probability for imputed data
         """
     bcf = pysam.VariantFile(input_file)
+    maf_include = pd.DataFrame(maf_file, delimiter=' ', names=['pos'])['pos'].values
     genes_data = pd.read_csv(genes_locations_file)
     genes_data.columns = ['chromosome', 'start_pos', 'end_pos']
     genes_data['chromosome'] = chromosome
@@ -155,7 +157,7 @@ def calculate_heterozygosity_genes(input_file, is_imputed, genes_locations_file,
             dp = sample.get('DP')
             gp = sample.get('GP')
             if ((not is_imputed and gt and None not in gt and dp >= min_dp) or
-                    (is_imputed and gt and None not in gt and max(gp) >= min_prob)):  # Check for valid genotype data
+                    (is_imputed and gt and None not in gt and max(gp) >= min_prob and record.pos in maf_include)):  # Check for valid genotype data
                 is_het = len(set(gt)) > 1
                 # Check if record overlaps any gene
                 for idx, row in genes_data.iterrows():
@@ -184,7 +186,7 @@ def calculate_heterozygosity_genes(input_file, is_imputed, genes_locations_file,
 
 
 def calculate_heterozygosity_bins(input_file, is_imputed, bin_size,
-                                  output_dir, chromosome, min_dp=MIN_DP,
+                                  output_dir, chromosome, maf_file, min_dp=MIN_DP,
                                   min_prob=MIN_PROB):
     """
     This function counts the total and heterozygous sites of a given BCF file
@@ -198,11 +200,13 @@ def calculate_heterozygosity_bins(input_file, is_imputed, bin_size,
     :param bin_size: size of bins to divide the calculation for
     :param output_dir: dir to save output file at
     :param chromosome: to run calculations for
+    :param maf_file: list of positions in chromosome filtered based on MAF
     :param min_dp: Minimum sequencing depth for original samples
     :param min_prob: Minimum probability for imputed data
     """
     bcf = pysam.VariantFile(input_file)
     bins_data = pd.DataFrame(columns=ALL_COLUMNS)
+    maf_include = pd.DataFrame(maf_file, delimiter=' ', names=['pos'])['pos'].values
 
     # Initiate bin data
     chrom_len = CHROM_LENGTHS[chromosome]
@@ -219,7 +223,7 @@ def calculate_heterozygosity_bins(input_file, is_imputed, bin_size,
             dp = sample.get('DP')
             gp = sample.get('GP')
             if ((not is_imputed and gt and None not in gt and dp >= min_dp) or
-                    (is_imputed and gt and None not in gt and max(gp) >= min_prob)):  # Check for valid genotype data
+                    (is_imputed and gt and None not in gt and max(gp) >= min_prob and record.pos in maf_include)): # Check for valid genotype data
                 bin_index = record.pos // bin_size
                 bins_data.loc[bin_index, 'total_count'] += 1
                 if len(set(gt)) > 1:  # Heterozygous if more than one allele in the genotype

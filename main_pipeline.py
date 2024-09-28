@@ -10,15 +10,10 @@ from calculate_heterozygosity import (calculate_heterozygosity_bins,
                                       calculate_heterozygosity_sites)
 
 # Consts
-GLIMPSE_DIR = '/home/lab-heavy2/Documents/yuvalt/glimpse'
-WD = '/home/lab-heavy2/adna'
-TRUTH_FASTA = '/home/lab-heavy2/adna/reference/hg19.fa'
 DEFAULT_BIN_SIZE = 10000
-DEFAULT_GENES_POS_FILE = '~/keith/adna_db/hla_genes_positions'
-
 
 def call(input_bam, output_path, chromosome, tsv, reference_sites,
-         truth_fasta=TRUTH_FASTA):
+         truth_fasta):
     """
     This method converts the given BAM file into a BCF file located and named
     in the given output path.
@@ -42,9 +37,9 @@ def call(input_bam, output_path, chromosome, tsv, reference_sites,
                         output_path=output_path)
 
 
-def phase(input_bam, reference, chromosome, reference_sites=None,
-          output_path=None, glimpse_dir=GLIMPSE_DIR, wd=WD,
-          truth_fasta=TRUTH_FASTA):
+def phase(input_bam, reference, chromosome, reference_sites,
+          output_path, glimpse_dir, wd,
+          truth_fasta):
     """
     This method runs imputation on the input BAM file.
 
@@ -81,8 +76,8 @@ def phase(input_bam, reference, chromosome, reference_sites=None,
     g.delete_temp_files()
 
 
-def het(input_bcf, output_dir, is_imputed, chromosome, bin_size=DEFAULT_BIN_SIZE,
-        genes_pos_file=DEFAULT_GENES_POS_FILE):
+def het(input_bcf, output_dir, is_imputed, chromosome, bin_size,
+        genes_pos_file, maf_file):
     """
     This method runs heterozygosity sites counts on the given BCF file.
 
@@ -92,11 +87,12 @@ def het(input_bcf, output_dir, is_imputed, chromosome, bin_size=DEFAULT_BIN_SIZE
     :param chromosome:
     :param bin_size:
     :param genes_pos_file:
+    :param maf_file:
     """
     calculate_heterozygosity_bins(input_bcf, is_imputed, bin_size, output_dir,
-                                  chromosome)
+                                  chromosome, maf_file)
     calculate_heterozygosity_genes(input_bcf, is_imputed, genes_pos_file,
-                                   output_dir, chromosome)
+                                   output_dir, chromosome, maf_file)
 
 
 def het_sites(input_bcf, output_dir, is_imputed, chromosome, sites_file):
@@ -136,6 +132,7 @@ def main():
     parser.add_argument('--sites_file', type=str,
                         help='Path to file containing the sites to check '
                              'heterozygosity of.')
+    parser.add_argument('--maf_file', type=str, help='Path to file containing positions filtered by MAF')
 
     args = parser.parse_args()
 
@@ -161,10 +158,10 @@ def main():
                              "chromosome, imputed / non-imputed")
         if not args.output_path:
             het(args.input_path, os.path.dirname(args.input_path), args.is_imputed,
-                args.chromosome, DEFAULT_BIN_SIZE, args.genes_pos_file)
+                args.chromosome, DEFAULT_BIN_SIZE, args.genes_pos_file, args.maf_file)
         else:
             het(args.input_path, args.output_path, args.is_imputed,
-                args.chromosome, DEFAULT_BIN_SIZE, args.genes_pos_file)
+                args.chromosome, DEFAULT_BIN_SIZE, args.genes_pos_file, args.maf_file)
     elif args.mode == 'het_sites':
         if not args.output_path:
             het_sites(args.input_path, os.path.dirname(args.input_path),
